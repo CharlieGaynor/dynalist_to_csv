@@ -4,6 +4,7 @@ import json
 import time
 from data_classes.response import Response
 
+
 class scraper:
     """
     Use the API to scrape dynalist to get the dom
@@ -25,9 +26,7 @@ class scraper:
 
     def test_connection(self):
 
-        response = requests.post(
-            "https://dynalist.io/api/v1/file/list", json.dumps({"token": self.token})
-        ).text
+        response = requests.post("https://dynalist.io/api/v1/file/list", json.dumps({"token": self.token})).text
 
         # Now convert the text representation of a dictionary, into a dictionary∏
         response = self.response_to_dict(response)
@@ -76,10 +75,31 @@ class scraper:
         file_id = self.filenumber_id_map[filenumber]
         args = {"token": self.token, "file_id": file_id}
 
-        response = requests.post(
-            "https://dynalist.io/api/v1/doc/read", json.dumps(args)
-        ).text
+        response = requests.post("https://dynalist.io/api/v1/doc/read", json.dumps(args)).text
         self.file_contents[file_id] = self.response_to_dict(response)
+
+    @staticmethod
+    def get_all_answers(
+        question_node: dict[str, Union[str, dict]], id_node_store: dict[str, dict], num_of_tabs: int = 0
+    ) -> str:
+        """
+        Pass in the question node, and return the 'answers', formatted with tabs. 
+        Uses recursion to trawl through the nested bullet point lists
+        """
+        answer = "<br/>"
+        try:
+            answer_ids = question_node["children"]
+        except KeyError:
+            return ""
+        for answer_id in answer_ids:
+            answer += num_of_tabs * "\t"
+            answer_node = id_node_store[answer_id]
+            answer += answer_node["content"]
+            sub_answers = scraper.get_all_answers(answer_node, id_node_store, num_of_tabs + 1)
+            answer += sub_answers
+            answer += "<br/>"
+
+        return answer[:-5]  # Remove the last line break
 
     def scrape_file(self, filenumber: int) -> None:
         """
@@ -135,20 +155,11 @@ class scraper:
 
                         question = question_node["content"]
                         nodes_to_change_color.append(question_id)
+                        answer = "<pre>"
                         # Process the answers to this question and store
-                        answer = ""
-                        # Try getting child nodes. If there are none, it's a bad flashcard, skip it
-                        # This could be changed to allow single side flashcards
-                        try:
-                            answer_ids = question_node["children"]
-                        except KeyError:
-                            continue
-                        for answer_id in answer_ids:
-                            answer_node = id_node_store[answer_id]
-                            answer += answer_node["content"]
-                            answer += "<br/>"
+                        answer += self.get_all_answers(question_node, id_node_store)
+                        answer += "</pre>"
 
-                        answer = answer[:-5]  # Removing the last <br/>
                         question_answer_map[question] = answer
 
         self.file_questions_map[file_title] = question_answer_map
@@ -162,9 +173,7 @@ class scraper:
             for question, answer in question_answer_map.items():
                 f.write(f"{question},{answer}\n")
 
-    def update_node_colors(
-        self, nodes_to_change_color: list[str], filenumber: int, color: int = 4
-    ) -> None:
+    def update_node_colors(self, nodes_to_change_color: list[str], filenumber: int, color: int = 4) -> None:
 
         file_id = self.filenumber_id_map[filenumber]
         file_contents = self.file_contents[file_id]
@@ -180,9 +189,7 @@ class scraper:
             "changes": changes,
         }
 
-        raw_response = requests.post(
-            "https://dynalist.io/api/v1/doc/edit", json.dumps(changes_file)
-        ).text
+        raw_response = requests.post("https://dynalist.io/api/v1/doc/edit", json.dumps(changes_file)).text
         response = self.response_to_dict(raw_response)
         if response.get("_code", None) is None:
             print("Failed to update node_colors :(")
