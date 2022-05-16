@@ -1,6 +1,5 @@
 from functions.scrape_with_api import scraper
 
-
 if __name__ == "__main__":
     api_scraper = scraper()
     while True:

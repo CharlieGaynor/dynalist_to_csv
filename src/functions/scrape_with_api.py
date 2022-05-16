@@ -1,6 +1,8 @@
+from typing import Union
 import requests
 import json
-import os
+import time
+from data_classes.response import Response
 
 class scraper:
     """
@@ -8,13 +10,13 @@ class scraper:
     """
 
     def __init__(self) -> None:
-        self.token = json.load(open("../api_token.json")).get("token")
-        self.file_contents: dict[str, str] = {}
-        self.file_questions_map: dict[str, dict[str:str]] = {}
+        self.token = json.load(open("api_token.json")).get("token")
+        self.file_contents: dict = {}
+        self.file_questions_map: dict[str, dict[str, str]] = {}
         self.nodes_that_have_changed_color: list = []
 
     @staticmethod
-    def response_to_dict(response: str) -> dict:
+    def response_to_dict(response: str) -> Response:
         """
         Converts a response from dynalist,from text,
         and returns it
@@ -42,18 +44,18 @@ class scraper:
         Stores dictionary of file id: file name, to be able to fetch the full doc
         """
 
-        response = requests.post(
+        raw_response: str = requests.post(
             "https://dynalist.io/api/v1/file/list", json.dumps({"token": self.token})
         ).text
 
         # Now convert the text representation of a dictionary, into a dictionary∏
-        response = self.response_to_dict(response)
+        response = self.response_to_dict(raw_response)
 
         # files_info has form: name (type): number
         files_info: list[str] = []
-        filenumber_id_map: dict[str, str] = {}
+        filenumber_id_map: dict[int, str] = {}
 
-        current_file = 1
+        current_file: int = 1
         for file in response["files"]:
             title = file["title"]
             file_type = file["type"]
@@ -94,7 +96,7 @@ class scraper:
         file_contents = self.file_contents[file_id]
         file_title = file_contents["title"]
 
-        question_answer_map: dict[str:str] = {}
+        question_answer_map: dict[str, str] = {}
         id_node_store: dict[str, dict] = {}
 
         if file_contents.get("nodes", None) is None:
@@ -124,7 +126,10 @@ class scraper:
 
                     # Now need to search for the node with this id
                     question_node = id_node_store[question_id]
-                    question_color = question_node["color"]
+                    try:
+                        question_color = question_node["color"]
+                    except KeyError:
+                        question_color = 1
 
                     if question_color != 4:  # Color 4 == Green
 
@@ -132,7 +137,12 @@ class scraper:
                         nodes_to_change_color.append(question_id)
                         # Process the answers to this question and store
                         answer = ""
-                        answer_ids = question_node["children"]
+                        # Try getting child nodes. If there are none, it's a bad flashcard, skip it
+                        # This could be changed to allow single side flashcards
+                        try:
+                            answer_ids = question_node["children"]
+                        except KeyError:
+                            continue
                         for answer_id in answer_ids:
                             answer_node = id_node_store[answer_id]
                             answer += answer_node["content"]
@@ -148,7 +158,7 @@ class scraper:
         self.update_node_colors(nodes_to_change_color, filenumber)
 
         print("Saving to CSV")
-        with open(f"../csvs/{file_title}.csv", "w") as f:
+        with open(f"csvs/{file_title}.csv", "w") as f:
             for question, answer in question_answer_map.items():
                 f.write(f"{question},{answer}\n")
 
@@ -170,13 +180,14 @@ class scraper:
             "changes": changes,
         }
 
-        response = requests.post(
+        raw_response = requests.post(
             "https://dynalist.io/api/v1/doc/edit", json.dumps(changes_file)
         ).text
-        response = self.response_to_dict(response)
+        response = self.response_to_dict(raw_response)
         if response.get("_code", None) is None:
             print("Failed to update node_colors :(")
         else:
             print("Sucessfully updated node colors :)")
             if color != 4:
                 self.nodes_that_have_changed_color = []
+            time.sleep(1.5)
