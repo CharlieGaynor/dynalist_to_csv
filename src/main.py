@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
         else:
             try:
-                file_number = int(user_input)
+                file_number: int = int(user_input)
                 api_scraper.scrape_file(file_number)
                 print("scraped file :D")
             except ValueError:
