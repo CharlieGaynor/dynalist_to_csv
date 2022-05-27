@@ -29,7 +29,7 @@ if __name__ == "__main__":
         else:
             try:
                 file_number: int = int(user_input)
-                api_scraper.scrape_file(file_number)
+                api_scraper.scrape_file(file_number, delimiter=';', replacement_delimiter=':')  # Change this to change delimiter
                 print("scraped file :D")
             except ValueError:
                 print("bad input, please try again :)")

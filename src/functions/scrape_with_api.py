@@ -3,6 +3,7 @@ import requests
 import json
 import time
 from data_classes.response import Response
+from config import DELIMITER, DELIMITER_REPLACEMENT
 
 
 class scraper:
@@ -83,7 +84,7 @@ class scraper:
         question_node: dict[str, Union[str, dict]], id_node_store: dict[str, dict], num_of_tabs: int = 0
     ) -> str:
         """
-        Pass in the question node, and return the 'answers', formatted with tabs. 
+        Pass in the question node, and return the 'answers', formatted with tabs.
         Uses recursion to trawl through the nested bullet point lists
         """
         answer = "<br/>"
@@ -101,7 +102,9 @@ class scraper:
 
         return answer[:-5]  # Remove the last line break
 
-    def scrape_file(self, filenumber: int) -> None:
+    def scrape_file(
+        self, filenumber: int, delimiter: str = DELIMITER, replacement_delimiter: str = DELIMITER_REPLACEMENT
+    ) -> None:
         """
         Gets all the question: answers from the file.
         Also updates the colors to green, to mark as 'done'
@@ -153,12 +156,16 @@ class scraper:
 
                     if question_color != 4:  # Color 4 == Green
 
-                        question = question_node["content"]
+                        question: str = question_node["content"]
                         nodes_to_change_color.append(question_id)
                         answer = "<pre>"
                         # Process the answers to this question and store
                         answer += self.get_all_answers(question_node, id_node_store)
                         answer += "</pre>"
+
+                        # We're using semicolon delimited, so make sure we don't have these in the answer or question :)
+                        answer = answer.replace(delimiter, replacement_delimiter)
+                        question = question.replace(delimiter, replacement_delimiter)
 
                         question_answer_map[question] = answer
 
@@ -171,7 +178,7 @@ class scraper:
         print("Saving to CSV")
         with open(f"csvs/{file_title}.csv", "w") as f:
             for question, answer in question_answer_map.items():
-                f.write(f"{question},{answer}\n")
+                f.write(f"{question}{delimiter}{answer}\n")  # semi colon delimited
 
     def update_node_colors(self, nodes_to_change_color: list[str], filenumber: int, color: int = 4) -> None:
 
