@@ -8,7 +8,7 @@ if __name__ == "__main__":
             api_scraper.get_all_files()
             show_files = False
         user_input: str = input(
-            "Give file to scrape, return to exit. Type 'revert' to undo the previous color changes, or 'files' to see files\n"
+            "Give the file to scrape, return to exit. Type 'revert' to undo the previous color changes, or 'files' to see files again\n"  # noqa: E501
         )
         if user_input == "":
             break  # Not really necessary due to ctrl + c, but helps some users :)
@@ -29,7 +29,11 @@ if __name__ == "__main__":
         else:
             try:
                 file_number: int = int(user_input)
-                api_scraper.scrape_file(file_number, delimiter=';', replacement_delimiter=':')  # Change this to change delimiter
+                api_scraper.scrape_file(
+                    file_number,
+                    # delimiter=";",
+                    # replacement_delimiter=":"
+                )  # Change this to change delimiter
                 print("scraped file :D")
             except ValueError:
                 print("bad input, please try again :)")

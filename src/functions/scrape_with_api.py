@@ -4,6 +4,7 @@ import json
 import time
 from data_classes.response import Response
 from config import DELIMITER, DELIMITER_REPLACEMENT
+from api_token import TOKEN
 
 
 class scraper:
@@ -12,7 +13,7 @@ class scraper:
     """
 
     def __init__(self) -> None:
-        self.token = json.load(open("api_token.json")).get("token")
+        self.token = TOKEN
         self.file_contents: dict = {}
         self.file_questions_map: dict[str, dict[str, str]] = {}
         self.nodes_that_have_changed_color: list = []
@@ -178,7 +179,7 @@ class scraper:
         print("Saving to CSV")
         with open(f"csvs/{file_title}.csv", "w") as f:
             for question, answer in question_answer_map.items():
-                f.write(f"{question}{delimiter}{answer}\n")  # semi colon delimited
+                f.write(f"{question}{delimiter}{answer}\n")
 
     def update_node_colors(self, nodes_to_change_color: list[str], filenumber: int, color: int = 4) -> None:
 
