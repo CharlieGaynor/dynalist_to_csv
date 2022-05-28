@@ -88,20 +88,23 @@ class scraper:
         Pass in the question node, and return the 'answers', formatted with tabs.
         Uses recursion to trawl through the nested bullet point lists
         """
-        answer = "<br/>"
+        answer = ""
         try:
             answer_ids = question_node["children"]
         except KeyError:
             return ""
         for answer_id in answer_ids:
-            answer += num_of_tabs * "\t"
+            answer += "<li>"
             answer_node = id_node_store[answer_id]
             answer += answer_node["content"]
             sub_answers = scraper.get_all_answers(answer_node, id_node_store, num_of_tabs + 1)
-            answer += sub_answers
-            answer += "<br/>"
+            if sub_answers != "":
+                answer += "<ul>"
+                answer += sub_answers
+                answer += "</ul>"
+            answer += "</li><br>"
 
-        return answer[:-5]  # Remove the last line break
+        return answer  # Remove the last line break
 
     def scrape_file(
         self, filenumber: int, delimiter: str = DELIMITER, replacement_delimiter: str = DELIMITER_REPLACEMENT
@@ -131,21 +134,22 @@ class scraper:
         for node in nodes:
             id_node_store[node["id"]] = node
 
-        question_strings = [
-            "question:",
-            "questions:",
-            "question",
-            "questions",
-        ]
-
         nodes_to_change_color: list[str] = []
+
+        possible_question_titles: list[str] = [
+            'questions',
+            'question',
+            'questions:',
+            'question:'
+        ]
 
         for node in nodes:
 
             node_text: str = node["content"]
-            if node_text.lower().strip() in question_strings:
+            if node_text.lower().strip() in possible_question_titles:
 
                 question_ids: list[str] = node["children"]
+                num_questions: int = len(question_ids)
                 for question_id in question_ids:
 
                     # Now need to search for the node with this id
@@ -159,10 +163,10 @@ class scraper:
 
                         question: str = question_node["content"]
                         nodes_to_change_color.append(question_id)
-                        answer = "<pre>"
+                        answer = "<ul>"
                         # Process the answers to this question and store
                         answer += self.get_all_answers(question_node, id_node_store)
-                        answer += "</pre>"
+                        answer += "</ul>"
 
                         # We're using semicolon delimited, so make sure we don't have these in the answer or question :)
                         answer = answer.replace(delimiter, replacement_delimiter)
@@ -174,12 +178,13 @@ class scraper:
 
         # Storing nodes incase we want to change back later
         self.nodes_that_have_changed_color = nodes_to_change_color
+        print(f"Found {num_questions} question(s), updating node(s) now...")
         self.update_node_colors(nodes_to_change_color, filenumber)
 
         print("Saving to CSV")
         with open(f"csvs/{file_title}.csv", "w") as f:
             for question, answer in question_answer_map.items():
-                f.write(f"{question}{delimiter}{answer}\n")
+                f.write(f'"{question}"{delimiter}"{answer}"\n')
 
     def update_node_colors(self, nodes_to_change_color: list[str], filenumber: int, color: int = 4) -> None:
 
