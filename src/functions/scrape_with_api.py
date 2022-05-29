@@ -147,9 +147,11 @@ class scraper:
 
             node_text: str = node["content"]
             if node_text.lower().strip() in possible_question_titles:
-
-                question_ids: list[str] = node["children"]
-                num_questions: int = len(question_ids)
+                
+                try:
+                    question_ids: list[str] = node["children"]
+                except KeyError:  # This can happen if there are no questions under the heading 'questions:'
+                    continue
                 for question_id in question_ids:
 
                     # Now need to search for the node with this id
@@ -178,6 +180,7 @@ class scraper:
 
         # Storing nodes incase we want to change back later
         self.nodes_that_have_changed_color = nodes_to_change_color
+        num_questions = len(nodes_to_change_color)
         print(f"Found {num_questions} question(s), updating node(s) now...")
         self.update_node_colors(nodes_to_change_color, filenumber)
 
