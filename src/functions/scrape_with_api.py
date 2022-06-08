@@ -96,7 +96,9 @@ class scraper:
         for answer_id in answer_ids:
             answer += "<li>"
             answer_node = id_node_store[answer_id]
-            answer += answer_node["content"]
+            content = answer_node["content"]
+            content = content.replace('<', '[').replace('>', ']')
+            answer += content
             sub_answers = scraper.get_all_answers(answer_node, id_node_store, num_of_tabs + 1)
             if sub_answers != "":
                 answer += "<ul>"
@@ -164,6 +166,7 @@ class scraper:
                     if question_color != 4:  # Color 4 == Green
 
                         question: str = question_node["content"]
+                        question = question.replace('<', '[').replace('>', ']')  # bodge fix for html in question
                         nodes_to_change_color.append(question_id)
                         answer = "<ul>"
                         # Process the answers to this question and store
