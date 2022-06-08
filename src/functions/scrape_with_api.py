@@ -30,7 +30,7 @@ class scraper:
 
         response = requests.post("https://dynalist.io/api/v1/file/list", json.dumps({"token": self.token})).text
 
-        # Now convert the text representation of a dictionary, into a dictionary∏
+        # Now convert the text representation of a dictionary, into a dictionary
         response = self.response_to_dict(response)
         code = response.get("_code", None)
         if code is None:
@@ -49,7 +49,7 @@ class scraper:
             "https://dynalist.io/api/v1/file/list", json.dumps({"token": self.token})
         ).text
 
-        # Now convert the text representation of a dictionary, into a dictionary∏
+        # Now convert the text representation of a dictionary, into a dictionary
         response = self.response_to_dict(raw_response)
 
         # files_info has form: name (type): number
@@ -181,13 +181,17 @@ class scraper:
         # Storing nodes incase we want to change back later
         self.nodes_that_have_changed_color = nodes_to_change_color
         num_questions = len(nodes_to_change_color)
-        print(f"Found {num_questions} question(s), updating node(s) now...")
-        self.update_node_colors(nodes_to_change_color, filenumber)
+        print(f"Found {num_questions} question(s), saving them to csv...")
+        
+        try:
+            with open(f"csvs/{file_title}.csv", "w") as f:
+                for question, answer in question_answer_map.items():
+                    f.write(f'"{question}"{delimiter}"{answer}"\n')
+        except FileNotFoundError as e:
+            raise FileNotFoundError('Please make CSV folder and try again') from e
 
-        print("Saving to CSV")
-        with open(f"csvs/{file_title}.csv", "w") as f:
-            for question, answer in question_answer_map.items():
-                f.write(f'"{question}"{delimiter}"{answer}"\n')
+        print("Updating node(s) now...")
+        self.update_node_colors(nodes_to_change_color, filenumber)
 
     def update_node_colors(self, nodes_to_change_color: list[str], filenumber: int, color: int = 4) -> None:
 

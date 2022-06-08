@@ -15,6 +15,7 @@ if __name__ == "__main__":
 
         if user_input.lower() == "files":
             show_files = True
+            continue
 
         if user_input.lower() == "revert":
             try:

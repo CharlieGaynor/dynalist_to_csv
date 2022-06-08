@@ -10,7 +10,7 @@ class fileSpec:
     type: str
     permission: int
     collapsed: bool
-    children: list[str]
+    children: List[str]
 
 
 @dataclass
