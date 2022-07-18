@@ -1,8 +1,4 @@
 # Ignore api_token (for privacy)
-api_token.json
-#api_token.py
-temp.json
-scraped_html.html
 *.csv
 testing.py
 .vscode
