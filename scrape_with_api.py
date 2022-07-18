@@ -1,10 +1,9 @@
 from typing import Union
-import requests
+import requests  # type: ignore
 import json
 import time
 from data_classes.response import Response
-from config import DELIMITER, DELIMITER_REPLACEMENT
-from api_token import TOKEN
+import config
 
 
 class scraper:
@@ -13,7 +12,7 @@ class scraper:
     """
 
     def __init__(self) -> None:
-        self.token = TOKEN
+        self.token = config.TOKEN
         self.file_contents: dict = {}
         self.file_questions_map: dict[str, dict[str, str]] = {}
         self.nodes_that_have_changed_color: list = []
@@ -21,7 +20,7 @@ class scraper:
     @staticmethod
     def response_to_dict(response: str) -> Response:
         """
-        Converts a response from dynalist,from text,
+        Converts a str response from dynalist to a dictionary (of custom Response dataclass type)
         and returns it
         """
         return eval(response.replace("false", "False").replace("true", "True"))
@@ -40,7 +39,7 @@ class scraper:
 
     def get_all_files(self) -> None:
         """
-        grabs all folders and files from within dynalist by querying the API
+        Grabs all folders and files from within dynalist by querying the API
         Stores information about the files in self.file_info
         Stores dictionary of file id: file name, to be able to fetch the full doc
         """
@@ -80,36 +79,9 @@ class scraper:
         response = requests.post("https://dynalist.io/api/v1/doc/read", json.dumps(args)).text
         self.file_contents[file_id] = self.response_to_dict(response)
 
-    @staticmethod
-    def get_all_answers(
-        question_node: dict[str, Union[str, dict]], id_node_store: dict[str, dict], num_of_tabs: int = 0
-    ) -> str:
-        """
-        Pass in the question node, and return the 'answers', formatted with tabs.
-        Uses recursion to trawl through the nested bullet point lists
-        """
-        answer = ""
-        try:
-            answer_ids = question_node["children"]
-        except KeyError:
-            return ""
-        for answer_id in answer_ids:
-            answer += "<li>"
-            answer_node = id_node_store[answer_id]
-            content = answer_node["content"]
-            content = content.replace('<', '[').replace('>', ']')
-            answer += content
-            sub_answers = scraper.get_all_answers(answer_node, id_node_store, num_of_tabs + 1)
-            if sub_answers != "":
-                answer += "<ul>"
-                answer += sub_answers
-                answer += "</ul>"
-            answer += "</li><br>"
-
-        return answer  # Remove the last line break
 
     def scrape_file(
-        self, filenumber: int, delimiter: str = DELIMITER, replacement_delimiter: str = DELIMITER_REPLACEMENT
+        self, filenumber: int, delimiter: str = config.DELIMITER, replacement_delimiter: str = config.DELIMITER_REPLACEMENT
     ) -> None:
         """
         Gets all the question: answers from the file.
@@ -173,7 +145,7 @@ class scraper:
                         answer += self.get_all_answers(question_node, id_node_store)
                         answer += "</ul>"
 
-                        # We're using semicolon delimited, so make sure we don't have these in the answer or question :)
+                        # Make sure we don't have the delimiter in the answer or question :)
                         answer = answer.replace(delimiter, replacement_delimiter)
                         question = question.replace(delimiter, replacement_delimiter)
 
@@ -196,10 +168,11 @@ class scraper:
         print("Updating node(s) now...")
         self.update_node_colors(nodes_to_change_color, filenumber)
 
-    def update_node_colors(self, nodes_to_change_color: list[str], filenumber: int, color: int = 4) -> None:
+    def update_node_colors(self, nodes_to_change_color: list[str], filenumber: int, color_text: str = 'green') -> None:
 
         file_id = self.filenumber_id_map[filenumber]
         file_contents = self.file_contents[file_id]
+        color = config.COLOR_MAP[color_text]
 
         changes: list[dict] = []
         for node in nodes_to_change_color:
@@ -214,10 +187,40 @@ class scraper:
 
         raw_response = requests.post("https://dynalist.io/api/v1/doc/edit", json.dumps(changes_file)).text
         response = self.response_to_dict(raw_response)
-        if response.get("_code", None) is None:
-            print("Failed to update node_colors :(")
-        else:
+        try:
+            response['_code']
             print("Sucessfully updated node colors :)")
+            
+        except KeyError:
+            print("Failed to update node_colors :(")     
             if color != 4:
                 self.nodes_that_have_changed_color = []
             time.sleep(1.5)
+            
+    @staticmethod
+    def get_all_answers(
+        question_node: dict[str, Union[str, dict]], id_node_store: dict[str, dict], num_of_tabs: int = 0
+    ) -> str:
+        """
+        Pass in the question node, and return the 'answers', formatted with tabs.
+        Uses recursion to trawl through the nested bullet point lists
+        """
+        answer = ""
+        try:
+            answer_ids = question_node["children"]
+        except KeyError:
+            return ""
+        for answer_id in answer_ids:
+            answer += "<li>"
+            answer_node = id_node_store[answer_id]
+            content = answer_node["content"]
+            content = content.replace('<', '[').replace('>', ']')
+            answer += content
+            sub_answers = scraper.get_all_answers(answer_node, id_node_store, num_of_tabs + 1)
+            if sub_answers != "":
+                answer += "<ul>"
+                answer += sub_answers
+                answer += "</ul>"
+            answer += "</li><br>"
+
+        return answer

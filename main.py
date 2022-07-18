@@ -1,8 +1,10 @@
-from functions.scrape_with_api import scraper
+from scrape_with_api import scraper
+import config
+
 
 if __name__ == "__main__":
     api_scraper = scraper()
-    show_files: bool = True
+    show_files = True
     while True:
         if show_files:
             api_scraper.get_all_files()
@@ -23,7 +25,7 @@ if __name__ == "__main__":
                 if nodes_to_change_colors == []:
                     print("No nodes to change colors of, you silly billy")
                 else:
-                    api_scraper.update_node_colors(nodes_to_change_colors, file_number, color=1)
+                    api_scraper.update_node_colors(nodes_to_change_colors, file_number, color_text=config.REVERT_COLOR)
             except NameError:
                 print("")
 

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from typing import List
 
 
@@ -11,6 +10,10 @@ class fileSpec:
     permission: int
     collapsed: bool
     children: List[str]
+    
+    def __getitem__(self, item):
+        return getattr(self, item)
+
 
 
 @dataclass
@@ -19,3 +22,6 @@ class Response:
     _msg: str
     root_file_id: str
     files: fileSpec
+    
+    def __getitem__(self, item):
+        return getattr(self, item)
