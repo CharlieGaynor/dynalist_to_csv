@@ -36,6 +36,17 @@ See below for the features, how to use the scraper & how to get it onto anki
 ## Have settings looking like this (unless you changed the delimiter)
 ![anki_step_2](images/anki_step_2.jpg)
 
+## Styling
+
+If the back of the flashcards look weird (don't seem to align properly), here are a couple of tips.
+#### Fixing left alignment:
+- From the home screen click on 'Add' then on 'Cards...'
+- On the 'Back template' tab, replace {{Back}} with \<div style="text-align:left"\>
+{{Back}}
+\</div> 
+- add "ul li {padding: 4x 2px;}" into styling (without quotes)
+
+
 
 Future improvements:
-- add funcitonality to swap $$ $$ -> \( \) - to enable latex code to work from dynalist to anki
+- add funcitonality to swap \$$ $$ -> \\( \\) - to enable latex code to work from dynalist to anki
